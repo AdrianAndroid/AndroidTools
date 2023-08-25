@@ -26,10 +26,10 @@ public class CustomViewPager extends ViewGroup {
     private int screenWidth;
     private int screenHeight;
     private int lastMoveX = 0;
-    private VelocityTracker velocityTracker;
+    private Scroller scroller; // 滚动计算器
+    private VelocityTracker velocityTracker; // 速度跟踪器
     private int MAX_VELOCITY = 600;
     private int curScreen = 0;
-    private Scroller scroller;
 
     public CustomViewPager(Context context) {
         super(context);
@@ -47,8 +47,8 @@ public class CustomViewPager extends ViewGroup {
     }
 
     private void init(Context context) {
-        scroller = new Scroller(context);
-
+        scroller = new Scroller(context); // 初始化滚动计算器
+        // 添加三个View
         LinearLayout layout1 = new LinearLayout(context);
         layout1.setBackgroundColor(Color.RED);
         addView(layout1);
@@ -64,23 +64,23 @@ public class CustomViewPager extends ViewGroup {
     public boolean onTouchEvent(MotionEvent event) {
         Log.i(TAG, "onTouchEvent: onTouchEvent=" + event);
         if (velocityTracker == null) {
-            velocityTracker = VelocityTracker.obtain();
+            velocityTracker = VelocityTracker.obtain(); // 初始化滚动速度跟踪器
         }
         velocityTracker.addMovement(event);
         int x = (int) event.getX();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                lastMoveX = x;
+                lastMoveX = x; // 记录下按下的点
                 break;
             case MotionEvent.ACTION_MOVE:
-                int dis = lastMoveX - x;
+                int dis = lastMoveX - x; // 移动的偏移量
                 Log.i(TAG, "onTouchEvent: dis=" + dis);
-                scrollBy(dis, 0);
+                scrollBy(dis, 0); // 位置滚动
                 lastMoveX = x;
                 break;
             case MotionEvent.ACTION_UP:
-                velocityTracker.computeCurrentVelocity(1000);
-                int velocityX = (int) velocityTracker.getXVelocity();
+                velocityTracker.computeCurrentVelocity(1000); // 计算需要的位置
+                int velocityX = (int) velocityTracker.getXVelocity(); // X轴上的速度
                 if (velocityX > MAX_VELOCITY && curScreen > 0) {
                     jump2Screen(curScreen - 1);
                 } else if (velocityX < -MAX_VELOCITY && curScreen < getChildCount() - 1) {
@@ -95,25 +95,28 @@ public class CustomViewPager extends ViewGroup {
                 }
                 break;
         }
-        return super.onTouchEvent(event);
+        return true;
     }
 
     public void jump2Screen(int screen) {
         curScreen = screen;
+        if (curScreen < 0) {
+            curScreen = 0;
+        }
         if (curScreen > getChildCount() - 1) {
             curScreen = getChildCount() - 1;
         }
         int dis = curScreen * screenWidth - getScrollX();
-        scroller.startScroll(getScrollX(), 0, dis, 0);
+        scroller.startScroll(getScrollX(), 0, dis, 0); // 开始滚动
         invalidate();
     }
 
     @Override
     public void computeScroll() {
         super.computeScroll();
-        if (scroller.computeScrollOffset()) {
-            scrollTo(scroller.getCurrX(), 0);
-            postInvalidate();
+        if (scroller.computeScrollOffset()) { // 是否处于偏移量的位置
+            scrollTo(scroller.getCurrX(), 0); // 滚动到指定的位置
+            postInvalidate(); // 继续滚动
         }
     }
 
@@ -123,6 +126,7 @@ public class CustomViewPager extends ViewGroup {
         screenWidth = MeasureSpec.getSize(widthMeasureSpec);
         screenHeight = MeasureSpec.getSize(heightMeasureSpec);
         setMeasuredDimension(screenWidth, screenHeight);
+        // 给子View设置大小
         for (int i = 0; i < getChildCount(); i++) {
             View view = getChildAt(i);
             view.measure(screenWidth, screenHeight);
@@ -133,6 +137,7 @@ public class CustomViewPager extends ViewGroup {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         int leftWidth = 0;
+        // 给子View排班
         for (int i = 0; i < getChildCount(); i++) {
             View view = getChildAt(i);
             view.layout(leftWidth, 0, leftWidth + screenWidth, screenHeight);
